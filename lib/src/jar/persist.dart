@@ -22,6 +22,7 @@ class PersistCookieJar extends DefaultCookieJar {
   /// [storage] is defaults to [FileStorage].
   PersistCookieJar({
     this.persistSession = true,
+    this.cookieParser,
     bool ignoreExpires = false,
     Storage? storage,
     this.deleteHostCookiesWhenLoadFailed = true,
@@ -30,6 +31,11 @@ class PersistCookieJar extends DefaultCookieJar {
 
   /// Whether persisting cookies without "expires" or "max-age" attribute.
   final bool persistSession;
+
+  /// Parses cookies restored from storage, including host and domain cookies.
+  /// Defaults to Dart's standard Cookie parser. Supply a custom parser when
+  /// saving Cookie implementations with different value validation rules.
+  final Cookie Function(String)? cookieParser;
   final Storage storage;
   final bool deleteHostCookiesWhenLoadFailed;
 
@@ -66,7 +72,7 @@ class PersistCookieJar extends DefaultCookieJar {
               ) {
                 return MapEntry<String, SerializableCookie>(
                   cookieName,
-                  SerializableCookie.fromJson(cookie),
+                  SerializableCookie.fromJson(cookie, cookieParser: cookieParser),
                 );
               });
               return MapEntry<String, Map<String, SerializableCookie>>(
@@ -214,7 +220,7 @@ class PersistCookieJar extends DefaultCookieJar {
           (json.decode(str) as Map).cast<String, Map<dynamic, dynamic>>();
       cookies.forEach((String path, Map<dynamic, dynamic> map) {
         map.cast<String, String>().forEach((String k, String v) {
-          map[k] = SerializableCookie.fromJson(v);
+          map[k] = SerializableCookie.fromJson(v, cookieParser: cookieParser);
         });
       });
       hostCookies[host] = cookies

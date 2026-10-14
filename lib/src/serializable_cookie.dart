@@ -12,9 +12,14 @@ class SerializableCookie {
   int createTimeStamp = 0;
 
   /// Create an instance from JSON string.
-  factory SerializableCookie.fromJson(String value) {
+  /// [cookieParser] restores custom Cookie implementations. If omitted,
+  /// persisted cookies are parsed using Dart's standard Cookie parser.
+  factory SerializableCookie.fromJson(
+    String value, {
+    Cookie Function(String)? cookieParser,
+  }) {
     final t = value.split(';_crt=');
-    return SerializableCookie(Cookie.fromSetCookieValue(t[0]))
+    return SerializableCookie((cookieParser ?? Cookie.fromSetCookieValue)(t[0]))
       ..createTimeStamp = int.parse(t[1]);
   }
 
