@@ -51,11 +51,11 @@ class PersistCookieJar extends DefaultCookieJar {
     String? str = await storage.read(_domainsKey);
     if (str != null && str.isNotEmpty) {
       try {
-        final Map<String, dynamic> jsonData = json.decode(str);
+        final jsonData = (json.decode(str) as Map).cast<String, dynamic>();
         final Map<String, Map<String, Map<String, SerializableCookie>>>
             cookies = jsonData.map((domain, cookies) {
-          final domainCookies = cookies
-              .cast<String, dynamic>()
+          final domainCookies = (cookies as Map)
+              .cast<String, Map<dynamic, dynamic>>()
               .map<String, Map<String, SerializableCookie>>(
             (path, map) {
               final cookieForPath = map.cast<String, String>();
@@ -90,7 +90,7 @@ class PersistCookieJar extends DefaultCookieJar {
     str = await storage.read(_indexKey);
     if ((str != null && str.isNotEmpty)) {
       try {
-        final list = json.decode(str);
+        final list = (json.decode(str) as List).cast<String>();
         _hostSet = Set<String>.from(list);
       } catch (e) {
         await storage.delete(_indexKey);
@@ -124,7 +124,7 @@ class PersistCookieJar extends DefaultCookieJar {
   Map<String, Map<String, SerializableCookie>> _filter(
     Map<String, Map<String, SerializableCookie>> domain,
   ) {
-    return domain.cast<String, Map<String, dynamic>>().map(
+    return domain.cast<String, Map<dynamic, dynamic>>().map(
       (path, cookies) {
         return MapEntry(
           path,
@@ -210,14 +210,15 @@ class PersistCookieJar extends DefaultCookieJar {
       return;
     }
     try {
-      final cookies = json.decode(str).cast<String, Map<String, dynamic>>();
-      cookies.forEach((String path, Map<String, dynamic> map) {
-        map.forEach((String k, dynamic v) {
+      final cookies =
+          (json.decode(str) as Map).cast<String, Map<dynamic, dynamic>>();
+      cookies.forEach((String path, Map<dynamic, dynamic> map) {
+        map.cast<String, String>().forEach((String k, String v) {
           map[k] = SerializableCookie.fromJson(v);
         });
       });
-      hostCookies[host] =
-          cookies.cast<String, Map<String, SerializableCookie>>();
+      hostCookies[host] = cookies
+          .map((k, v) => MapEntry(k, v.cast<String, SerializableCookie>()));
     } catch (e) {
       if (deleteHostCookiesWhenLoadFailed) {
         await storage.delete(host);

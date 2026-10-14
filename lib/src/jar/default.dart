@@ -93,23 +93,19 @@ class DefaultCookieJar implements CookieJar {
     final urlPath = uri.path;
     // Load cookies without "domain" attribute, include port.
     final hostname = uri.host;
-    for (final domain in hostCookies.keys) {
-      if (hostname == domain) {
-        final cookies =
-            hostCookies[domain]!.cast<String, Map<String, dynamic>>();
-        // Sort by best match （longer path first）
-        final keys = cookies.keys.toList()
-          ..sort((a, b) => b.length.compareTo(a.length));
-        for (final path in keys) {
-          if (_isPathMatch(urlPath, path)) {
-            final values = cookies[path]!;
-            for (final key in values.keys) {
-              final SerializableCookie cookie = values[key];
-              if (_check(uri.scheme, cookie)) {
-                // preserve cookies that with same name but in different paths when request (as Chrome);
-                // eg(in request header): Cookie: a=1;  a=2;  a=3
-                list.add(cookie.cookie);
-              }
+    final cookies = hostCookies[hostname];
+    if (cookies != null) {
+      // Sort by best match （longer path first）
+      final keys = cookies.keys.toList()
+        ..sort((a, b) => b.length.compareTo(a.length));
+      for (final path in keys) {
+        if (_isPathMatch(urlPath, path)) {
+          final values = cookies[path]!;
+          for (final cookie in values.values) {
+            if (_check(uri.scheme, cookie)) {
+              // preserve cookies that with same name but in different paths when request (as Chrome);
+              // eg(in request header): Cookie: a=1;  a=2;  a=3
+              list.add(cookie.cookie);
             }
           }
         }
@@ -156,16 +152,14 @@ class DefaultCookieJar implements CookieJar {
         path = cookie.path ?? _curDir(uri.path);
       }
       final mapDomain =
-          _cookies[index][domain]?.cast<String, Map<String, dynamic>>() ??
-              <String, Map<String, dynamic>>{};
-      final map = mapDomain[path] ?? <String, dynamic>{};
-      map[cookie.name] = SerializableCookie(cookie);
-      if (_isExpired(map[cookie.name])) {
+          _cookies[index][domain] ?? {};
+      final map = mapDomain[path] ?? {};
+      final c = map[cookie.name] = SerializableCookie(cookie);
+      if (_isExpired(c)) {
         map.remove(cookie.name);
       }
-      mapDomain[path] = map.cast<String, SerializableCookie>();
-      _cookies[index][domain] =
-          mapDomain.cast<String, Map<String, SerializableCookie>>();
+      mapDomain[path] = map;
+      _cookies[index][domain] = mapDomain;
     }
   }
 
